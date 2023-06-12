@@ -20,7 +20,7 @@ from data_preprocessing import format_text
 
 
 # Define the dataset
-dataset = pd.read_csv(io.BytesIO(uploaded['data.csv']))
+dataset = pd.read_csv("data.csv")
 dataset.drop(columns = dataset.columns[0], inplace=True, axis=1)
 
 # Function to drop all NaN values
