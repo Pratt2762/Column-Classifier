@@ -26,6 +26,9 @@ dataset.drop(columns = dataset.columns[0], inplace=True, axis=1)
 # Function to drop all NaN values
 dataset = dataset.dropna()
 
+# Dropping the rows which don't have a tag
+dataset = dataset[dataset.tag != '-']
+
 # Converting all items in the 'text' column to dtype string
 dataset['text'] = dataset['text'].map(str)
 
@@ -39,3 +42,8 @@ for i in range(dataset.shape[0]):
 # Displaying our dataset after applying the preprocessing techniques to it
 dataset
 
+# Displaying the distribution of our labels on a bar plot
+dataset.groupby(['tag']).size().plot.bar()
+
+# Finding out the number of instances of each label
+dataset['tag'].value_counts()
