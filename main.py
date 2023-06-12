@@ -67,5 +67,19 @@ LR = 1e-6
 # Training the classifier on our data
 train(model, trainset, valset, LR, EPOCHS)
 
+# Function to determine the size of our model in order to keep an eye on computational overhead
+def find_model_size(model):
+  param_size = 0
+  for param in model.parameters():
+      param_size += param.nelement() * param.element_size()
+  buffer_size = 0
+  for buffer in model.buffers():
+      buffer_size += buffer.nelement() * buffer.element_size()
+
+  size_all_mb = (param_size + buffer_size) / 1024**2
+  print('model size: {:.3f}MB'.format(size_all_mb))
+
+find_model_size(model)
+
 # Evaluating its performance 
 evaluate(model, testset)
