@@ -18,6 +18,8 @@ from nltk.tokenize import word_tokenize
 import data_preprocessing
 from data_preprocessing import format_text
 
+from bert_classifier import BertClassifier, train, evaluate
+
 
 # Define the dataset
 dataset = pd.read_csv("data.csv")
@@ -47,3 +49,23 @@ dataset.groupby(['tag']).size().plot.bar()
 
 # Finding out the number of instances of each label
 dataset['tag'].value_counts()
+
+
+# Splitting our dataset into train, val and test sets in the ratio 80:10:10
+np.random.seed(42)
+trainset, valset, testset = np.split(dataset.sample(frac=1, random_state=42), 
+                                     [int(.8*len(dataset)), int(.9*len(dataset))])
+
+print(len(trainset),len(valset), len(testset))
+
+
+# Setting the training hyperparameters
+EPOCHS = 5
+model = BertClassifier()
+LR = 1e-6
+
+# Training the classifier on our data
+train(model, trainset, valset, LR, EPOCHS)
+
+# Evaluating its performance 
+evaluate(model, testset)
