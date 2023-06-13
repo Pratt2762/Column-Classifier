@@ -18,7 +18,7 @@ from nltk.tokenize import word_tokenize
 import data_preprocessing
 from data_preprocessing import format_text
 
-from bert_classifier import BertClassifier, train, evaluate
+from bert_classifier import BertClassifier, train, evaluate_bert, evaluate_classwise_bert
 
 
 # Define the dataset
@@ -82,4 +82,5 @@ def find_model_size(model):
 find_model_size(model)
 
 # Evaluating its performance 
-evaluate(model, testset)
+evaluate_bert(model, testset)
+evaluate_classwise_bert(model, testset)
