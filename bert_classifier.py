@@ -138,7 +138,7 @@ def train(model, train_data, val_data, learning_rate, epochs):
                 | Val Accuracy: {total_acc_val / len(val_data): .3f}')
 
 
-def evaluate(model, test_data):
+def evaluate_bert(model, test_data):
     test = Dataset(test_data)
     test_dataloader = torch.utils.data.DataLoader(test, batch_size=2)
 
@@ -163,3 +163,39 @@ def evaluate(model, test_data):
               total_acc_test += acc
     
     print(f'Test Accuracy: {total_acc_test / len(test_data): .3f}')
+          
+          
+def evaluate_classwise_bert(model, test_data):
+    n_classes = 11
+    classes = ['Employers_Payment','EmployeesPayment', 'Fund_Name', 'Payments_Type_and_Date', 'Higher_Rate', 'Middle_rate', 'Lower_Rate', 'Number_of_Units', 'Unit_price',
+          'Fund_Value', 'Split']
+    confusion_matrix = torch.zeros(n_classes, n_classes)
+
+    test = Dataset(test_data)
+    test_dataloader = torch.utils.data.DataLoader(test, batch_size=1)
+
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+
+    if use_cuda:
+        model = model.cuda()
+
+    with torch.no_grad():
+        for test_input, test_label in test_dataloader:
+
+              test_label = test_label.to(device)
+              mask = test_input['attention_mask'].to(device)
+              input_id = test_input['input_ids'].squeeze(1).to(device)
+
+              output = model(input_id, mask)
+
+              _, pred = torch.max(output, 1)
+              for t, p in zip(test_label.view(-1), pred.view(-1)):
+                confusion_matrix[t.long(), p.long()] += 1
+    
+    print("The confusion matrix for our 11-class classification task is -")
+    print(confusion_matrix)
+    print("\nClasswise accuracies are -")
+    accuracies = confusion_matrix.diag()/confusion_matrix.sum(1)
+    zipped_accuracies = [[classes[i], accuracies[i]] for i in range(11)]
+    print(zipped_accuracies)
