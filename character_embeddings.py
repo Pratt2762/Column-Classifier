@@ -14,7 +14,7 @@ labels = {'Employers_Payment':0,
 
 # Creating the dataset class to create character embeddings from the given dataset
 class Dataset(torch.utils.data.Dataset):
-    def __init__(self, dataset, max_length):
+    def __init__(self, dataset, max_length=256):
         self.vocabulary = list("""abcdefghijklmnopqrstuvwxyz0123456789,;.!?:'\"/\\|_@#$%^&*~`+-=<>()[]{}""")
         self.identity_mat = np.identity(len(self.vocabulary))
         self.labels = [labels[label] for label in dataset['tag']]
@@ -60,7 +60,7 @@ class Dataset(torch.utils.data.Dataset):
       
       
 # Creating the character embeddings of each sample from our dataset
-character_embeddings = Dataset(dataset, 1000)
+character_embeddings = Dataset(dataset, 256)
 
 # Passing the newly formed dataset into a dataloader
 dataloader = torch.utils.data.DataLoader(character_embeddings, batch_size=2, shuffle=False)
