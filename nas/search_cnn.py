@@ -2,7 +2,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from models.search_cells import SearchCell
+from search_cells import SearchCell
 import genotypes as gt
 from torch.nn.parallel._functions import Broadcast
 import logging
