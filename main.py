@@ -39,8 +39,8 @@ dataset['text'] = dataset['text'].map(str)
 dataset.dtypes
 
 
-# Adding some extra synthetic data (manually generated) to our data to increase its diversity
-dataset = add_synthetic_data(dataset)
+# # Adding some extra synthetic data (manually generated) to our data to increase its diversity
+# dataset = add_synthetic_data(dataset)
 
 
 # Applying the necessary preprocessing techniques to our data
