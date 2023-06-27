@@ -1,0 +1,8 @@
+Python >= 3.5.5
+PyTorch == 0.3.1
+torchvision == 0.2.0
+transformers == 4.30.2
+nlpaug == 1.1.11
+nltk == 3.8.1
+pandas == 2.0.2
+numpy == 1.25.0
