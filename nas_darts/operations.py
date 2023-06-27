@@ -2,15 +2,15 @@ import torch
 import torch.nn as nn
 
 OPS = {
-  'none' : lambda C, stride, affine: Zero(stride),
-  'avg_pool_2' : lambda C, stride, affine: nn.AvgPool1d(2, stride=stride, padding=1, count_include_pad=False),
-  'max_pool_2' : lambda C, stride, affine: nn.MaxPool1d(2, stride=stride, padding=1),
-  'skip_connect' : lambda C, stride, affine: Identity() if stride == 1 else FactorizedReduce(C, C, affine=affine),
-  'sep_conv_1' : lambda C, stride, affine: SepConv(C, C, 1, stride, 0, affine=affine),
-  'sep_conv_3' : lambda C, stride, affine: SepConv(C, C, 3, stride, 1, affine=affine),
-  'sep_conv_5' : lambda C, stride, affine: SepConv(C, C, 5, stride, 2, affine=affine),
-  'dil_conv_1' : lambda C, stride, affine: DilConv(C, C, 1, stride, 0, 0, affine=affine),
-  'dil_conv_3' : lambda C, stride, affine: DilConv(C, C, 3, stride, 2, 1, affine=affine),
+    'none' : lambda C, stride, affine: Zero(stride),
+    'avg_pool_2' : lambda C, stride, affine: nn.AvgPool1d(2, stride=stride, padding=1, count_include_pad=False),
+    'max_pool_2' : lambda C, stride, affine: nn.MaxPool1d(2, stride=stride, padding=1),
+    'skip_connect' : lambda C, stride, affine: Identity() if stride == 1 else FactorizedReduce(C, C, affine=affine),
+    'sep_conv_1' : lambda C, stride, affine: SepConv(C, C, 1, stride, 0, affine=affine),
+    'sep_conv_3' : lambda C, stride, affine: SepConv(C, C, 3, stride, 1, affine=affine),
+    'sep_conv_5' : lambda C, stride, affine: SepConv(C, C, 5, stride, 2, affine=affine),
+    'dil_conv_1' : lambda C, stride, affine: DilConv(C, C, 1, stride, 0, 0, affine=affine),
+    'dil_conv_3' : lambda C, stride, affine: DilConv(C, C, 3, stride, 2, 1, affine=affine),
 }
 
 
