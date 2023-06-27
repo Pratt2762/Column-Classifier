@@ -1,109 +1,91 @@
-""" Architect controls architecture of cell by computing gradients of alphas """
-import copy
 import torch
+import numpy as np
+import torch.nn as nn
+from torch.autograd import Variable
 
 
-class Architect():
-    """ Compute gradients of alphas """
-    def __init__(self, net, w_momentum, w_weight_decay):
-        """
-        Args:
-            net
-            w_momentum: weights momentum
-        """
-        self.net = net
-        self.v_net = copy.deepcopy(net)
-        self.w_momentum = w_momentum
-        self.w_weight_decay = w_weight_decay
+def _concat(xs):
+    return torch.cat([x.view(-1) for x in xs])
 
-    def virtual_step(self, trn_X, trn_y, xi, w_optim):
-        """
-        Compute unrolled weight w' (virtual step)
 
-        Step process:
-        1) forward
-        2) calc loss
-        3) compute gradient (by backprop)
-        4) update gradient
+class Architect(object):
 
-        Args:
-            xi: learning rate for virtual gradient step (same as weights lr)
-            w_optim: weights optimizer
-        """
-        # forward & calc loss
-        loss = self.net.loss(trn_X, trn_y) # L_trn(w)
+    def __init__(self, model, args):
+        self.network_momentum = args.momentum
+        self.network_weight_decay = args.weight_decay
+        self.model = model
+        self.optimizer = torch.optim.Adam(self.model.arch_parameters(),
+            lr=args.arch_learning_rate, betas=(0.9, 0.999), weight_decay=args.arch_weight_decay)
 
-        # compute gradient
-        gradients = torch.autograd.grad(loss, self.net.weights())
+    def _compute_unrolled_model(self, input, target, eta, network_optimizer):
+        loss = self.model._loss(input, target)
+        theta = _concat(self.model.parameters()).data
+        try:
+            moment = _concat(network_optimizer.state[v]['momentum_buffer'] for v in self.model.parameters()).mul_(self.network_momentum)
+        except:
+            moment = torch.zeros_like(theta)
+        dtheta = _concat(torch.autograd.grad(loss, self.model.parameters())).data + self.network_weight_decay*theta
+        unrolled_model = self._construct_model_from_theta(theta.sub(eta, moment+dtheta))
+        return unrolled_model
 
-        # do virtual step (update gradient)
-        # below operations do not need gradient tracking
-        with torch.no_grad():
-            # dict key is not the value, but the pointer. So original network weight have to
-            # be iterated also.
-            for w, vw, g in zip(self.net.weights(), self.v_net.weights(), gradients):
-                m = w_optim.state[w].get('momentum_buffer', 0.) * self.w_momentum
-                vw.copy_(w - xi * (m + g + self.w_weight_decay*w))
+    def step(self, input_train, target_train, input_valid, target_valid, eta, network_optimizer, unrolled):
+        self.optimizer.zero_grad()
+        if unrolled:
+            self._backward_step_unrolled(input_train, target_train, input_valid, target_valid, eta, network_optimizer)
+        else:
+            self._backward_step(input_valid, target_valid)
+        self.optimizer.step()
 
-            # synchronize alphas
-            for a, va in zip(self.net.alphas(), self.v_net.alphas()):
-                va.copy_(a)
+    def _backward_step(self, input_valid, target_valid):
+        loss = self.model._loss(input_valid, target_valid)
+        loss.backward()
 
-    def unrolled_backward(self, trn_X, trn_y, val_X, val_y, xi, w_optim):
-        """ Compute unrolled loss and backward its gradients
-        Args:
-            xi: learning rate for virtual gradient step (same as net lr)
-            w_optim: weights optimizer - for virtual step
-        """
-        # do virtual step (calc w`)
-        self.virtual_step(trn_X, trn_y, xi, w_optim)
+    def _backward_step_unrolled(self, input_train, target_train, input_valid, target_valid, eta, network_optimizer):
+        unrolled_model = self._compute_unrolled_model(input_train, target_train, eta, network_optimizer)
+        unrolled_loss = unrolled_model._loss(input_valid, target_valid)
 
-        # calc unrolled loss
-        loss = self.v_net.loss(val_X, val_y) # L_val(w`)
+        unrolled_loss.backward()
+        dalpha = [v.grad for v in unrolled_model.arch_parameters()]
+        vector = [v.grad.data for v in unrolled_model.parameters()]
+        implicit_grads = self._hessian_vector_product(vector, input_train, target_train)
 
-        # compute gradient
-        v_alphas = tuple(self.v_net.alphas())
-        v_weights = tuple(self.v_net.weights())
-        v_grads = torch.autograd.grad(loss, v_alphas + v_weights)
-        dalpha = v_grads[:len(v_alphas)]
-        dw = v_grads[len(v_alphas):]
+        for g, ig in zip(dalpha, implicit_grads):
+            g.data.sub_(eta, ig.data)
 
-        hessian = self.compute_hessian(dw, trn_X, trn_y)
+        for v, g in zip(self.model.arch_parameters(), dalpha):
+            if v.grad is None:
+                v.grad = Variable(g.data)
+            else:
+                v.grad.data.copy_(g.data)
 
-        # update final gradient = dalpha - xi*hessian
-        with torch.no_grad():
-            for alpha, da, h in zip(self.net.alphas(), dalpha, hessian):
-                alpha.grad = da - xi*h
+    def _construct_model_from_theta(self, theta):
+        model_new = self.model.new()
+        model_dict = self.model.state_dict()
 
-    def compute_hessian(self, dw, trn_X, trn_y):
-        """
-        dw = dw` { L_val(w`, alpha) }
-        w+ = w + eps * dw
-        w- = w - eps * dw
-        hessian = (dalpha { L_trn(w+, alpha) } - dalpha { L_trn(w-, alpha) }) / (2*eps)
-        eps = 0.01 / ||dw||
-        """
-        norm = torch.cat([w.view(-1) for w in dw]).norm()
-        eps = 0.01 / norm
+        params, offset = {}, 0
+        for k, v in self.model.named_parameters():
+            v_length = np.prod(v.size())
+            params[k] = theta[offset: offset+v_length].view(v.size())
+            offset += v_length
 
-        # w+ = w + eps*dw`
-        with torch.no_grad():
-            for p, d in zip(self.net.weights(), dw):
-                p += eps * d
-        loss = self.net.loss(trn_X, trn_y)
-        dalpha_pos = torch.autograd.grad(loss, self.net.alphas()) # dalpha { L_trn(w+) }
+        assert offset == len(theta)
+        model_dict.update(params)
+        model_new.load_state_dict(model_dict)
+        return model_new.cuda()
 
-        # w- = w - eps*dw`
-        with torch.no_grad():
-            for p, d in zip(self.net.weights(), dw):
-                p -= 2. * eps * d
-        loss = self.net.loss(trn_X, trn_y)
-        dalpha_neg = torch.autograd.grad(loss, self.net.alphas()) # dalpha { L_trn(w-) }
+     def _hessian_vector_product(self, vector, input, target, r=1e-2):
+        R = r / _concat(vector).norm()
+        for p, v in zip(self.model.parameters(), vector):
+            p.data.add_(R, v)
+        loss = self.model._loss(input, target)
+        grads_p = torch.autograd.grad(loss, self.model.arch_parameters())
 
-        # recover w
-        with torch.no_grad():
-            for p, d in zip(self.net.weights(), dw):
-                p += eps * d
+        for p, v in zip(self.model.parameters(), vector):
+            p.data.sub_(2*R, v)
+        loss = self.model._loss(input, target)
+        grads_n = torch.autograd.grad(loss, self.model.arch_parameters())
 
-        hessian = [(p-n) / 2.*eps for p, n in zip(dalpha_pos, dalpha_neg)]
-        return hessian
+        for p, v in zip(self.model.parameters(), vector):
+            p.data.add_(R, v)
+
+        return [(x-y).div_(2*R) for x, y in zip(grads_p, grads_n)]
