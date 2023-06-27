@@ -68,11 +68,10 @@ class AuxiliaryHead(nn.Module):
         super(AuxiliaryHead, self).__init__()
         self.features = nn.Sequential(
             nn.ReLU(inplace=True),
-            nn.AvgPool1d(3, stride=1, padding=0, count_include_pad=False),
-            nn.Conv1d(C, 128, 1, bias=False),
+            nn.Conv1d(C, 128, 2, bias=False),
             nn.BatchNorm1d(128),
             nn.ReLU(inplace=True),
-            nn.Conv1d(128, 768, 2, bias=False),
+            nn.Conv1d(128, 768, 3, bias=False),
             nn.BatchNorm1d(768),
             nn.ReLU(inplace=True)
         )
