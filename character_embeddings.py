@@ -1,3 +1,8 @@
+import torch
+import numpy as np
+import pandas as pd
+from data_preprocessing import format_text
+
 labels = {'Employers_Payment':0,
           'EmployeesPayment':1,
           'Fund_Name':2,
@@ -59,16 +64,30 @@ class Dataset(torch.utils.data.Dataset):
         return data, label
       
       
-# Creating the character embeddings of each sample from our dataset
-character_embeddings = Dataset(dataset, 256)
+def create_dataset():
+    # Define the dataset
+    dataset = pd.read_csv("data.csv")
+    dataset.drop(columns = dataset.columns[0], inplace=True, axis=1)
 
-# Passing the newly formed dataset into a dataloader
-dataloader = torch.utils.data.DataLoader(character_embeddings, batch_size=2, shuffle=False)
+    # Function to drop all NaN values
+    dataset = dataset.dropna()
 
-# Checking to see whether our code works
-for inputs, labels in dataloader:
-    print("Input -")
-    print(inputs)
-    print("\nLabel -")
-    print(labels)
-    break
+    # Dropping the rows which don't have a tag
+    dataset = dataset[dataset.tag != '-']
+
+    # Converting all items in the 'text' column to dtype string
+    dataset['text'] = dataset['text'].map(str)
+    
+    # Applying all the necessary preprocessing techniques to our data
+    for i in range(dataset.shape[0]):
+        dataset.iloc[i,1] = format_text(dataset.iloc[i,1])
+    
+    # Splitting our data into train, val and test data
+    np.random.seed(42)
+    trainset, valset = np.split(dataset.sample(frac=1, random_state=42),[int(.8*len(dataset))])
+    
+    # Creating character embeddings dataset from our text dataset
+    trainset = Dataset(trainset, 256)
+    valset = Dataset(valset, 256)
+    
+    return trainset, valset
