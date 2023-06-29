@@ -84,10 +84,11 @@ def create_dataset():
     
     # Splitting our data into train, val and test data
     np.random.seed(42)
-    trainset, valset = np.split(dataset.sample(frac=1, random_state=42),[int(.8*len(dataset))])
+    trainset, valset, testset = np.split(dataset.sample(frac=1, random_state=42),[int(.8*len(dataset)), int(.9*len(dataset))])
     
     # Creating character embeddings dataset from our text dataset
     trainset = Dataset(trainset, 256)
     valset = Dataset(valset, 256)
+    testset = Dataset(testset, 256)
     
-    return trainset, valset
+    return trainset, valset, testset
