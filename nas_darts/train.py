@@ -40,7 +40,7 @@ from character_embeddings import create_dataset
 # parser.add_argument('--grad_clip', type=float, default=5, help='gradient clipping')
 # args = parser.parse_args()
 
-class Args:
+class train_args:
     data = "data.csv"
     batch_size = 4
     learning_rate = 0.025
@@ -60,7 +60,7 @@ class Args:
     arch = "DARTS"
     grad_clip = 5.0
     
-args = Args()
+args = train_args()
 
 
 args.save = 'eval-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S"))
