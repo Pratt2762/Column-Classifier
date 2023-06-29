@@ -89,10 +89,10 @@ class Network(nn.Module):
             self.cells += [cell]
             C_prev_prev, C_prev = C_prev, multiplier*C_curr
 
-    self.global_pooling = nn.AdaptiveAvgPool1d(1)
-    self.classifier = nn.Linear(C_prev, num_classes)
+        self.global_pooling = nn.AdaptiveAvgPool1d(1)
+        self.classifier = nn.Linear(C_prev, num_classes)
 
-    self._initialize_alphas()
+        self._initialize_alphas()
 
     def new(self):
         model_new = Network(self._C, self._num_classes, self._layers, self._criterion).cuda()
