@@ -73,7 +73,7 @@ class Architect(object):
         model_new.load_state_dict(model_dict)
         return model_new.cuda()
 
-     def _hessian_vector_product(self, vector, input, target, r=1e-2):
+    def _hessian_vector_product(self, vector, input, target, r=1e-2):
         R = r / _concat(vector).norm()
         for p, v in zip(self.model.parameters(), vector):
             p.data.add_(R, v)
@@ -85,6 +85,10 @@ class Architect(object):
         loss = self.model._loss(input, target)
         grads_n = torch.autograd.grad(loss, self.model.arch_parameters())
 
+        for p, v in zip(self.model.parameters(), vector):
+            p.data.add_(R, v)
+
+        return [(x-y).div_(2*R) for x, y in zip(grads_p, grads_n)]
         for p, v in zip(self.model.parameters(), vector):
             p.data.add_(R, v)
 
