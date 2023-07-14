@@ -89,7 +89,7 @@ def main():
     logging.info('gpu device = %d' % args.gpu)
     logging.info("args = %s", args)
 
-    genotype = eval("%s" % args.arch)
+    genotype = eval("genotypes.%s" % args.arch)
     model = Network(args.init_channels, NUM_CLASSES, args.layers, args.auxiliary, genotype)
     model = model.cuda()
 
