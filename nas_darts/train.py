@@ -4,7 +4,7 @@ import time
 import glob
 import numpy as np
 import torch
-import utils
+from utils import *
 import logging
 import argparse
 import torch.nn as nn
@@ -90,7 +90,7 @@ def main():
     logging.info("args = %s", args)
 
     genotype = eval("%s" % args.arch)
-    model = Network_1(args.init_channels, NUM_CLASSES, args.layers, args.auxiliary, genotype)
+    model = Network(args.init_channels, NUM_CLASSES, args.layers, args.auxiliary, genotype)
     model = model.cuda()
 
     logging.info("param size = %fMB", count_parameters_in_MB(model))
