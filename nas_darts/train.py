@@ -14,7 +14,9 @@ import torch.backends.cudnn as cudnn
 
 from torch.autograd import Variable
 from model import Network as Network
-from character_embeddings import create_dataset
+
+import matplotlib
+import matplotlib.pyplot as plt
 
 
 # parser = argparse.ArgumentParser("text_classify")
@@ -31,8 +33,6 @@ from character_embeddings import create_dataset
 # parser.add_argument('--model_path', type=str, default='saved_models', help='path to save the model')
 # parser.add_argument('--auxiliary', action='store_true', default=False, help='use auxiliary tower')
 # parser.add_argument('--auxiliary_weight', type=float, default=0.4, help='weight for auxiliary loss')
-# parser.add_argument('--cutout', action='store_true', default=False, help='use cutout')
-# parser.add_argument('--cutout_length', type=int, default=16, help='cutout length')
 # parser.add_argument('--drop_path_prob', type=float, default=0.2, help='drop path probability')
 # parser.add_argument('--save', type=str, default='EXP', help='experiment name')
 # parser.add_argument('--seed', type=int, default=0, help='random seed')
@@ -42,29 +42,28 @@ from character_embeddings import create_dataset
 
 class train_args:
     data = "data.csv"
-    batch_size = 4
+    batch_size = 8
     learning_rate = 0.025
     momentum = 0.9
     weight_decay = 3e-4
     report_freq = 50
     gpu = 0
-    epochs = 10
-    init_channels = 68
-    layers = 10
+    epochs = 15
+    init_channels = 64
+    layers = 8
     model_path = "saved_models"
     auxiliary = False
     auxiliary_weight = 0.4
-    drop_path_prob = 0.2
+    drop_path_prob = 0.5
     save = "EXP"
-    seed = 0
+    seed = 5
     arch = "DARTS"
     grad_clip = 5.0
     
 args = train_args()
 
-
 args.save = 'eval-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S"))
-utils.create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
+create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
 
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
@@ -80,7 +79,7 @@ def main():
     if not torch.cuda.is_available():
         logging.info('no gpu device available')
         sys.exit(1)
-
+        
     np.random.seed(args.seed)
     torch.cuda.set_device(args.gpu)
     cudnn.benchmark = True
@@ -90,11 +89,11 @@ def main():
     logging.info('gpu device = %d' % args.gpu)
     logging.info("args = %s", args)
 
-    genotype = eval("genotypes.%s" % args.arch)
-    model = Network(args.init_channels, NUM_CLASSES, args.layers, args.auxiliary, genotype)
+    genotype = eval("%s" % args.arch)
+    model = Network_1(args.init_channels, NUM_CLASSES, args.layers, args.auxiliary, genotype)
     model = model.cuda()
 
-    logging.info("param size = %fMB", utils.count_parameters_in_MB(model))
+    logging.info("param size = %fMB", count_parameters_in_MB(model))
 
     criterion = nn.CrossEntropyLoss()
     criterion = criterion.cuda()
@@ -105,15 +104,18 @@ def main():
         weight_decay=args.weight_decay
         )
 
-    train_data, valid_data = create_dataset()
+    train_data, valid_data, test_data = create_embedded_dataset()
 
     train_queue = torch.utils.data.DataLoader(
-        train_data, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=2)
+        train_data, batch_size=args.batch_size, shuffle=True, pin_memory=True)
 
     valid_queue = torch.utils.data.DataLoader(
-        valid_data, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=2)
+        valid_data, batch_size=args.batch_size, shuffle=False, pin_memory=True)
 
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, float(args.epochs))
+    
+    train_losses = []
+    valid_losses = []
 
     for epoch in range(args.epochs):
         scheduler.step()
@@ -121,21 +123,37 @@ def main():
         model.drop_path_prob = args.drop_path_prob * epoch / args.epochs
 
         train_acc, train_obj = train(train_queue, model, criterion, optimizer)
+        train_losses.append(train_obj)
         logging.info('train_acc %f', train_acc)
 
         valid_acc, valid_obj = infer(valid_queue, model, criterion)
+        valid_losses.append(valid_obj)
         logging.info('valid_acc %f', valid_acc)
 
-        utils.save(model, os.path.join(args.save, 'weights.pt'))
+        save(model, os.path.join(args.save, 'weights.pt'))
+       
+    
+    x = [i for i in range(len(train_losses))]
+    plt.figure(figsize=(10,5))
+    plt.plot(x, train_losses, label="Training Loss", color="b")
+    plt.plot(x, valid_losses, label= "Validation Loss", color="r")
+    plt.legend()
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title("Training and Validation Loss")
+    plt.savefig("loss.png")
+        
+    save(model, os.path.join(args.model_path, 'weights.pt'))
 
 
 def train(train_queue, model, criterion, optimizer):
-    objs = utils.AvgrageMeter()
-    top1 = utils.AvgrageMeter()
-    top5 = utils.AvgrageMeter()
+    objs = AvgrageMeter()
+    top1 = AvgrageMeter()
+    top5 = AvgrageMeter()
     model.train()
 
     for step, (input, target) in enumerate(train_queue):
+        input = input.float()
         input = Variable(input).cuda()
         target = Variable(target).cuda(non_blocking=True)
 
@@ -149,7 +167,7 @@ def train(train_queue, model, criterion, optimizer):
         nn.utils.clip_grad_norm(model.parameters(), args.grad_clip)
         optimizer.step()
 
-        prec1, prec5 = utils.accuracy(logits, target, topk=(1, 5))
+        prec1, prec5 = accuracy(logits, target, topk=(1, 5))
         n = input.size(0)
         objs.update(loss.item(), n)
         top1.update(prec1.item(), n)
@@ -162,19 +180,20 @@ def train(train_queue, model, criterion, optimizer):
 
 
 def infer(valid_queue, model, criterion):
-    objs = utils.AvgrageMeter()
-    top1 = utils.AvgrageMeter()
-    top5 = utils.AvgrageMeter()
+    objs = AvgrageMeter()
+    top1 = AvgrageMeter()
+    top5 = AvgrageMeter()
     model.eval()
 
     for step, (input, target) in enumerate(valid_queue):
-        input = Variable(input, volatile=True).cuda()
-        target = Variable(target, volatile=True).cuda(non_blocking=True)
+        input = input.float()
+        input = Variable(input).cuda()
+        target = Variable(target).cuda(non_blocking=True)
 
         logits, _ = model(input)
         loss = criterion(logits, target)
 
-        prec1, prec5 = utils.accuracy(logits, target, topk=(1, 5))
+        prec1, prec5 = accuracy(logits, target, topk=(1, 5))
         n = input.size(0)
         objs.update(loss.item(), n)
         top1.update(prec1.item(), n)
@@ -185,6 +204,4 @@ def infer(valid_queue, model, criterion):
 
     return top1.avg, objs.avg
 
-
-if __name__ == '__main__':
-    main() 
+main()
