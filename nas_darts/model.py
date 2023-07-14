@@ -64,7 +64,7 @@ class Cell(nn.Module):
 class AuxiliaryHead(nn.Module):
 
     def __init__(self, C, num_classes):
-        """assuming input size 256"""
+        """assuming input size 64"""
         super(AuxiliaryHead, self).__init__()
         self.features = nn.Sequential(
             nn.ReLU(inplace=True),
@@ -75,7 +75,7 @@ class AuxiliaryHead(nn.Module):
             nn.BatchNorm1d(768),
             nn.ReLU(inplace=True)
         )
-        self.classifier = nn.Linear(768*253, num_classes)
+        self.classifier = nn.Linear(768*61, num_classes)
 
         
     def forward(self, x):
@@ -95,7 +95,7 @@ class Network(nn.Module):
         stem_multiplier = 3
         C_curr = stem_multiplier*C
         self.stem = nn.Sequential(
-          nn.Conv1d(68, C_curr, 3, padding=1, bias=False),
+          nn.Conv1d(64, C_curr, 3, padding=1, bias=False),
           nn.BatchNorm1d(C_curr)
         )
     
