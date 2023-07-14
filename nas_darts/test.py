@@ -31,16 +31,15 @@ from model import Network as Network
 
 class test_args:
     data = "data.csv"
-    batch_size = 4
+    batch_size = 8
     report_freq = 50
     gpu = 0
-    epochs = 10
-    init_channels = 68
-    layers = 10
-    model_path = "saved_models"
+    init_channels = 64
+    layers = 8
+    model_path = "saved_models/weights.pt"
     auxiliary = False
-    drop_path_prob = 0.2
-    seed = 0
+    drop_path_prob = 0.4
+    seed = 5
     arch = "DARTS"
     
 args = test_args()
