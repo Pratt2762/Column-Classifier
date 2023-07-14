@@ -9,10 +9,10 @@ OPS = {
     'sep_conv_1' : lambda C, stride, affine: SepConv(C, C, 1, stride, 0, affine=affine),
     'sep_conv_3' : lambda C, stride, affine: SepConv(C, C, 3, stride, 1, affine=affine),
     'sep_conv_5' : lambda C, stride, affine: SepConv(C, C, 5, stride, 2, affine=affine),
+    'sep_conv_7' : lambda C, stride, affine: SepConv(C, C, 7, stride, 3, affine=affine),
     'dil_conv_3' : lambda C, stride, affine: DilConv(C, C, 3, stride, 2, 2, affine=affine),
     'dil_conv_5' : lambda C, stride, affine: DilConv(C, C, 5, stride, 4, 2, affine=affine),
 }
-
 
 
 class ReLUConvBN(nn.Module):
