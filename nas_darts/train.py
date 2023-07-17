@@ -206,4 +206,6 @@ def infer(valid_queue, model, criterion):
 
     return top1.avg, objs.avg
 
-main()
+
+if __name__ == '__main__':
+  main() 
