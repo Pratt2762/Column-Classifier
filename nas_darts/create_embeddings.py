@@ -349,4 +349,4 @@ def train_embedding_layer(epochs=15, lr=3e-5):
 
 
 if __name__ == '__main__':
-  train_embedding_layer(epochs=15, lr=3e-5)
+  train_embedding_layer(epochs=30, lr=3e-5)
