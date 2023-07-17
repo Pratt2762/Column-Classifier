@@ -42,7 +42,7 @@ if __name__ == '__main__':
 
     genotype_name = "DARTS"
     try:
-        genotype = eval('{}'.format(genotype_name))
+        genotype = eval('genotypes.{}'.format(genotype_name))
     except AttributeError:
         print("{} is not specified in genotypes.py".format(genotype_name)) 
         sys.exit(1)
