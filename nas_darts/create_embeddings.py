@@ -346,3 +346,7 @@ def train_embedding_layer(epochs=15, lr=3e-5):
     
     
     torch.save(model.embedding.weight, 'embeddings.pt')
+
+
+if __name__ == '__main__':
+  train_embedding_layer(epochs=15, lr=3e-5)
