@@ -1,8 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from create_embeddings import train_embedding_layer
 
 
 def get_embeddings():
+    train_embedding_layer(epochs=30, lr=3e-5, batch_size=2)
+    
     embeddings = torch.load('embeddings.pt')
     embeddings.requires_grad = False
     embeddings = embeddings.cpu()
