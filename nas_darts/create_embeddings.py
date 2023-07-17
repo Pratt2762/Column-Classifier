@@ -346,6 +346,3 @@ def train_embedding_layer(epochs=15, lr=3e-5):
     
     
     torch.save(model.embedding.weight, 'embeddings.pt')
-
-
-train_embedding_layer(epochs=50, lr=1e-5, batch_size=4)
