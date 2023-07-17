@@ -49,9 +49,9 @@ def remove_char(text):
 
 
 # We will also remove stopwords as some samples contain them
-stoplist = stopwords.words('english')
-stoplist = set(stoplist)
 def remove_stopwords(text):
+    stoplist = stopwords.words('english')
+    stoplist = set(stoplist)
     text_tokens = word_tokenize(text)
     tokens_without_sw = [word for word in text_tokens if not word in stoplist]
     text = (" ").join(tokens_without_sw)
@@ -79,9 +79,9 @@ def remove_emojis(text):
 
 # Function to lemmatize our text
 from nltk.stem import WordNetLemmatizer
-lemma = WordNetLemmatizer()
 
 def lemmatize_tokens(tokens):
+    lemma = WordNetLemmatizer()
     lemmatized_tokens = [lemma.lemmatize(token, pos = 'v') for token in tokens]
     return lemmatized_tokens
 
