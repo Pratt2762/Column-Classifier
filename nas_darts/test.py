@@ -14,6 +14,8 @@ import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 from model import Network as Network
 
+from create_embedded_dataset import create_embedded_dataset
+
 
 # parser = argparse.ArgumentParser("text_classify")
 # parser.add_argument('--data', type=str, default='data.csv', help='location of the data corpus')
@@ -75,7 +77,7 @@ def main():
     criterion = nn.CrossEntropyLoss()
     criterion = criterion.cuda()
 
-    train_data, valid_data, test_data = create_dataset()
+    train_data, valid_data, test_data = create_embedded_dataset()
 
     test_queue = torch.utils.data.DataLoader(
         test_data, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=2)
