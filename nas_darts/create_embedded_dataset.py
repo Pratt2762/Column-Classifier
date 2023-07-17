@@ -10,8 +10,6 @@ from torch.utils.data import Dataset, DataLoader
 
 
 def get_embeddings():
-    train_embedding_layer(epochs=30, lr=3e-5)
-    
     embeddings = torch.load('embeddings.pt')
     embeddings.requires_grad = False
     embeddings = embeddings.cpu()
