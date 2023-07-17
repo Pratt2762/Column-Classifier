@@ -94,6 +94,7 @@ def infer(test_queue, model, criterion):
     model.eval()
 
     for step, (input, target) in enumerate(test_queue):
+        input = input.float()
         input = Variable(input, volatile=True).cuda()
         target = Variable(target, volatile=True).cuda(non_blocking=True)
 
