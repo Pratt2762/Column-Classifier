@@ -18,6 +18,8 @@ from model import Network as Network
 import matplotlib
 import matplotlib.pyplot as plt
 
+from create_embedded_dataset import create_embedded_dataset
+
 
 # parser = argparse.ArgumentParser("text_classify")
 # parser.add_argument('--data', type=str, default='data.csv', help='location of the data corpus')
